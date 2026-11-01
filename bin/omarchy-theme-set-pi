@@ -49,14 +49,18 @@ if (( PI_ACTIVATE == 0 )) && [[ ! -d $PI_AGENT_DIR ]]; then
 fi
 
 write_setting_theme() {
-  local tmp
+  local target tmp
 
   mkdir -p "$PI_AGENT_DIR"
 
   if [[ -f $PI_SETTINGS_PATH ]]; then
-    tmp=$(mktemp "$PI_SETTINGS_PATH.XXXXXX")
-    jq '.theme = "omarchy-system"' "$PI_SETTINGS_PATH" >"$tmp"
-    mv "$tmp" "$PI_SETTINGS_PATH"
+    # Write through a symlinked settings.json (a dotfiles repository) rather
+    # than replacing the link, and keep the file's permissions.
+    target=$(readlink -f "$PI_SETTINGS_PATH")
+    tmp=$(mktemp "$target.XXXXXX")
+    jq '.theme = "omarchy-system"' "$target" >"$tmp"
+    chmod --reference="$target" "$tmp"
+    mv "$tmp" "$target"
   else
     cat >"$PI_SETTINGS_PATH" <<EOF
 {

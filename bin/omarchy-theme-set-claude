@@ -47,12 +47,16 @@ if (( CLAUDE_ACTIVATE == 0 )) && [[ ! -d $CLAUDE_CONFIG_DIR ]]; then
 fi
 
 write_setting_theme() {
-  local tmp
+  local target tmp
 
   if [[ -f $CLAUDE_SETTINGS_PATH ]]; then
-    tmp=$(mktemp "$CLAUDE_SETTINGS_PATH.XXXXXX")
-    jq '.theme = "custom:omarchy"' "$CLAUDE_SETTINGS_PATH" >"$tmp"
-    mv "$tmp" "$CLAUDE_SETTINGS_PATH"
+    # Write through a symlinked settings.json (a dotfiles repository) rather
+    # than replacing the link, and keep the file's permissions.
+    target=$(readlink -f "$CLAUDE_SETTINGS_PATH")
+    tmp=$(mktemp "$target.XXXXXX")
+    jq '.theme = "custom:omarchy"' "$target" >"$tmp"
+    chmod --reference="$target" "$tmp"
+    mv "$tmp" "$target"
   else
     cat >"$CLAUDE_SETTINGS_PATH" <<EOF
 {
